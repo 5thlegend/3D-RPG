@@ -4,6 +4,7 @@ import { BSPDungeonGenerator } from './systems/BSPDungeonGenerator';
 import { PhysicsSystem } from './systems/PhysicsSystem';
 import { AnimationSystem } from './systems/AnimationSystem';
 import { PlayerControlSystem } from './systems/PlayerControlSystem';
+import { AssetLoaderSystem } from './systems/AssetLoaderSystem';
 import { AISystem } from './systems/AISystem';
 import { CombatSystem } from './systems/CombatSystem';
 import { RenderSystem } from './systems/RenderSystem';
@@ -22,6 +23,8 @@ game.addSystem(new BSPDungeonGenerator(48, 48, { minRoom: 6 }));
 game.addSystem(new PhysicsSystem());
 game.addSystem(new AnimationSystem());
 game.addSystem(new PlayerControlSystem());
+// load models after player entity is created
+game.addSystem(new AssetLoaderSystem());
 game.addSystem(new AISystem());
 game.addSystem(new CombatSystem());
 game.addSystem(new RenderSystem());
