@@ -1,30 +1,13 @@
 import { System } from '../engine/Game';
 import * as THREE from 'three';
-import { World } from '../engine/ecs';
 import { createTransform } from '../components/Transform';
 import { RenderSystem } from './RenderSystem';
-
-type Rect = { x:number; y:number; w:number; h:number };
-
-function partition(rect: Rect, minSize: number, out: Rect[]) {
-  if (rect.w < minSize*2 && rect.h < minSize*2) { out.push(rect); return; }
-  const splitH = Math.random() < 0.5 && rect.h >= minSize*2;
-  if (splitH) {
-    const split = Math.floor(minSize + Math.random()*(rect.h-minSize*2));
-    partition({x:rect.x, y:rect.y, w:rect.w, h:split}, minSize, out);
-    partition({x:rect.x, y:rect.y+split, w:rect.w, h:rect.h-split}, minSize, out);
-  } else {
-    const split = Math.floor(minSize + Math.random()*(rect.w-minSize*2));
-    partition({x:rect.x, y:rect.y, w:split, h:rect.h}, minSize, out);
-    partition({x:rect.x+split, y:rect.y, w:rect.w-split, h:rect.h}, minSize, out);
-  }
-}
 
 export class BSPDungeonGenerator implements System {
   private width: number;
   private height: number;
   private options: { minRoom: number; maxRoom?: number };
-  private world!: World;
+  private world!: any;
   private scene!: THREE.Scene;
   private grid: number[][] = [];
 
@@ -36,9 +19,25 @@ export class BSPDungeonGenerator implements System {
     this.world = game.world;
     this.scene = game.scene;
     this.grid = Array.from({length:this.width}, () => Array(this.height).fill(1));
-    const parts: Rect[] = [];
+
+    // simple partitioning (reuse existing partition from earlier commit)
+    function partition(rect: any, minSize: number, out: any[]) {
+      if (rect.w < minSize*2 && rect.h < minSize*2) { out.push(rect); return; }
+      const splitH = Math.random() < 0.5 && rect.h >= minSize*2;
+      if (splitH) {
+        const split = Math.floor(minSize + Math.random()*(rect.h-minSize*2));
+        partition({x:rect.x, y:rect.y, w:rect.w, h:split}, minSize, out);
+        partition({x:rect.x, y:rect.y+split, w:rect.w, h:rect.h-split}, minSize, out);
+      } else {
+        const split = Math.floor(minSize + Math.random()*(rect.w-minSize*2));
+        partition({x:rect.x, y:rect.y, w:split, h:rect.h}, minSize, out);
+        partition({x:rect.x+split, y:rect.y, w:rect.w-split, h:rect.h}, minSize, out);
+      }
+    }
+
+    const parts: any[] = [];
     partition({x:1,y:1,w:this.width-2,h:this.height-2}, this.options.minRoom, parts);
-    const rooms: Rect[] = [];
+    const rooms: any[] = [];
     for (const p of parts) {
       const rw = Math.max(3, Math.floor(p.w * (0.4 + Math.random()*0.5)));
       const rh = Math.max(3, Math.floor(p.h * (0.4 + Math.random()*0.5)));
@@ -61,6 +60,7 @@ export class BSPDungeonGenerator implements System {
       }
     }
 
+    // visualize using meshes; mark walls collidable and enable shadows
     const wallGeo = new THREE.BoxGeometry(1,2,1);
     const wallMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
     for (let x=0;x<this.width;x++){
@@ -68,6 +68,9 @@ export class BSPDungeonGenerator implements System {
         if (this.grid[x][y] === 1) {
           const mesh = new THREE.Mesh(wallGeo, wallMat);
           mesh.position.set(x,1,y);
+          mesh.userData.collidable = true;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
           const transform = createTransform(mesh.position.x, mesh.position.y, mesh.position.z);
           RenderSystem.attachModel(this.world, this.scene, transform, mesh);
         }
@@ -77,12 +80,20 @@ export class BSPDungeonGenerator implements System {
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(this.width, this.height), new THREE.MeshStandardMaterial({color:0x666666}));
     floor.rotation.x = -Math.PI/2;
     floor.position.set(this.width/2-0.5, 0, this.height/2-0.5);
+    floor.receiveShadow = true;
     this.scene.add(floor);
 
     const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
     this.scene.add(hemi);
     const dir = new THREE.DirectionalLight(0xfff7df, 0.8);
     dir.position.set(10,20,10);
+    dir.castShadow = true;
+    dir.shadow.mapSize.width = 1024;
+    dir.shadow.mapSize.height = 1024;
+    dir.shadow.camera.left = -30;
+    dir.shadow.camera.right = 30;
+    dir.shadow.camera.top = 30;
+    dir.shadow.camera.bottom = -30;
     this.scene.add(dir);
   }
 

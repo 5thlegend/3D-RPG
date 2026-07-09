@@ -21,6 +21,11 @@ export class Game {
     this.camera.position.set(6, 6, 10);
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(opts.width, opts.height);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.outputEncoding = THREE.sRGBEncoding;
+    this.renderer.physicallyCorrectLights = true;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     opts.parent.appendChild(this.renderer.domElement);
     this.world = new World();
   }

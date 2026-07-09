@@ -11,6 +11,15 @@ export class RenderSystem implements System {
     const entity = world.createEntity();
     world.addComponent(entity, 'Transform', transform);
     world.addComponent(entity, 'Model', { mesh });
+
+    // ensure shadows for all child meshes
+    mesh.traverse((child:any) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
     mesh.position.copy(transform.position);
     mesh.rotation.copy(transform.rotation);
     mesh.scale.copy(transform.scale);
