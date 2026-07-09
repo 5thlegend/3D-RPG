@@ -8,6 +8,7 @@ import { AssetLoaderSystem } from './systems/AssetLoaderSystem';
 import { AISystem } from './systems/AISystem';
 import { CombatSystem } from './systems/CombatSystem';
 import { RenderSystem } from './systems/RenderSystem';
+import { EnvironmentSystem } from './systems/EnvironmentSystem';
 
 const game = new Game({
   width: window.innerWidth,
@@ -18,6 +19,9 @@ const game = new Game({
 // expose for systems (replace with DI in production)
 // @ts-ignore
 window.__GAME__ = game;
+
+// environment first so HDR is ready
+game.addSystem(new EnvironmentSystem());
 
 game.addSystem(new BSPDungeonGenerator(48, 48, { minRoom: 6 }));
 game.addSystem(new PhysicsSystem());

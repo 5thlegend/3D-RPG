@@ -2,7 +2,7 @@ import { System } from '../engine/Game';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-type Actor = { entity: number; mixer: THREE.AnimationMixer; actions: Record<string, THREE.AnimationAction> };
+type Actor = { entity: number; mixer: THREE.AnimationMixer; actions: Record<string, THREE.AnimationAction>; current?: THREE.AnimationAction };
 
 export class AnimationSystem implements System {
   private actors = new Map<number, Actor>();
@@ -23,21 +23,34 @@ export class AnimationSystem implements System {
       const mixer = new THREE.AnimationMixer(root);
       const actions: Record<string, THREE.AnimationAction> = {};
       for (const clip of gltf.animations) actions[clip.name] = mixer.clipAction(clip);
-      this.actors.set(entity, { entity, mixer, actions });
+      this.actors.set(entity, { entity, mixer, actions, current: undefined });
     }
+
     onReady?.(root);
   }
 
-  play(entity: number, actionName: string, fade=0.15) {
+  // crossfade to actionName
+  play(entity: number, actionName: string, fade = 0.2) {
     const actor = this.actors.get(entity);
     if (!actor) return;
     const next = actor.actions[actionName];
     if (!next) return;
-    for (const a of Object.values(actor.actions)) a.stop();
+    const current = actor.current;
+    if (current === next) return;
     next.reset().fadeIn(fade).play();
+    if (current) {
+      current.fadeOut(fade);
+    }
+    actor.current = next;
   }
 
-  update(dt:number) {
+  stop(entity: number) {
+    const actor = this.actors.get(entity);
+    if (!actor) return;
+    if (actor.current) { actor.current.stop(); actor.current = undefined; }
+  }
+
+  update(dt: number) {
     for (const a of this.actors.values()) a.mixer.update(dt);
   }
 }
